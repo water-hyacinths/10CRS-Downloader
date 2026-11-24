@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10CRS Downloader</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-title"><i class="ti ti-device-desktop-down"></i>10CRS Downloader</div>
+    <div class="header-sub">Merge video and audio, download from an m3u8 link, or convert a video file.</div>
+  </div>
+  <div class="card">
+    <div class="tabs">
+      <button id="tab-merge-btn" class="tab-btn active" onclick="switchTab('merge')"><i class="ti ti-arrows-join"></i> Drop &amp; Merge</button>
+      <button id="tab-dl-btn" class="tab-btn" onclick="switchTab('dl')"><i class="ti ti-cloud-download"></i> Link Download</button>
+      <button id="tab-lm-btn" class="tab-btn" onclick="switchTab('lm')"><i class="ti ti-link"></i> Link Merge</button>
+      <button id="tab-cv-btn" class="tab-btn" onclick="switchTab('cv')"><i class="ti ti-refresh"></i> Convert</button>
+      <button id="tab-hls-btn" class="tab-btn" onclick="switchTab('hls')"><i class="ti ti-player-play"></i> HLS</button>
+    </div>
+
+    <div id="panel-merge" class="panel">
+      <!-- existing merge panel content unchanged -->
+      <div class="drop-grid">
+        <div id="zone-v" class="drop-zone" onclick="document.getElementById('inp-v').click()" ondragover="ev(event,'v')" ondragleave="el('v')" ondrop="ed(event,'v')">
+          <input id="inp-v" type="file" accept="video/*,.mp4" onchange="fi(event,'v')" style="display:none;">
+          <i id="icon-v" class="ti ti-video"></i>
+          <div id="lbl-v" class="zone-label">Video file</div>
+          <div id="sub-v" class="zone-sub">Drop a video file here, such as 720p.mp4</div>
+          <div id="fn-v" class="zone-file"></div>
+        </div>
+        <div id="zone-a" class="drop-zone" onclick="document.getElementById('inp-a').click()" ondragover="ev(event,'a')" ondragleave="el('a')" ondrop="ed(event,'a')">
+          <input id="inp-a" type="file" accept="audio/*,video/*,.mp4,.mp3,.m4a" onchange="fi(event,'a')" style="display:none;">
+          <i id="icon-a" class="ti ti-music"></i>
+          <div id="lbl-a" class="zone-label">Audio file</div>
+          <div id="sub-a" class="zone-sub">Drop an audio file here, such as 128k.mp4 or .mp3</div>
+          <div id="fn-a" class="zone-file"></div>
+        </div>
+      </div>
+      <div class="name-row">
+        <input id="out-name" type="text" placeholder="Output filename (for example, CH02-Class01)">
+        <div class="ext-badge">.mp4</div>
+      </div>
+      <button id="merge-btn" class="primary-btn" onclick="doMerge()" disabled>
+        <i class="ti ti-arrows-join"></i> Merge Files
+      </button>
+      <div class="progress-wrap" id="prog-wrap-merge"><div class="progress-bar" id="prog-bar-merge"></div></div>
+      <div class="status-box" id="status-merge"></div>
+    </div>
+
+    <div id="panel-dl" class="panel" style="display:none;">
+      <div class="name-row">
+        <input id="dl-url" type="text" placeholder="Paste an .m3u8 URL (for example, https://.../720_out.m3u8?...)" oninput="checkDlReady()">
+      </div>
+      <div class="name-row">
+        <input id="dl-name" type="text" placeholder="Output filename (for example, CH02-Class01)" oninput="checkDlReady()">
+        <div class="ext-badge">.mp4</div>
+      </div>
+      <button id="dl-btn" class="primary-btn" onclick="doDownload()" disabled>
+        <i class="ti ti-download"></i> Download Video
+      </button>
+      <div class="progress-wrap" id="prog-wrap-dl"><div class="progress-bar" id="prog-bar-dl"></div></div>
+      <div class="status-box" id="status-dl"></div>
+      <div class="hint">
+        <i class="ti ti-info-circle"></i> Some media links expire quickly. Start the download soon after copying the URL from your browser's Network tab.
+      </div>
+    </div>
+
+    <div id="panel-lm" class="panel" style="display:none;">
+      <div class="drop-grid">
+        <div class="link-input-box">
+          <div class="link-box-label"><i class="ti ti-video"></i> Video Link</div>
+          <input id="lm-vurl" type="text" placeholder="Paste the video URL, such as 1080p.mp4?md5=...&expires=..." oninput="checkLmReady()">
+        </div>
+        <div class="link-input-box">
+          <div class="link-box-label"><i class="ti ti-music"></i> Audio Link</div>
+          <input id="lm-aurl" type="text" placeholder="Paste the audio URL, such as 192k.mp4?md5=...&expires=..." oninput="checkLmReady()">
+        </div>
+      </div>
+      <div class="name-row">
+        <input id="lm-name" type="text" placeholder="Output filename (for example, CH02-Class01)" oninput="checkLmReady()">
+        <div class="ext-badge">.mp4</div>
+      </div>
+      <button id="lm-btn" class="primary-btn" onclick="doLinkMerge()" disabled>
+        <i class="ti ti-arrows-join-2"></i> Download &amp; Merge
+      </button>
+      <div class="progress-wrap" id="prog-wrap-lm"><div class="progress-bar" id="prog-bar-lm"></div></div>
+      <div class="status-box" id="status-lm"></div>
+      <div class="hint">
+        <i class="ti ti-info-circle"></i> Both media links may expire quickly. Start the merge soon after copying them from your browser's Network tab.
+      </div>
+    </div>
+
+    <div id="panel-cv" class="panel" style="display:none;">
+      <div id="zone-c" class="drop-zone" style="margin-bottom:1rem;" onclick="document.getElementById('inp-c').click()" ondragover="cvOver(event)" ondragleave="cvLeave()" ondrop="cvDrop(event)">
+        <input id="inp-c" type="file" accept="video/*,.webm,.mkv,.avi,.mov,.flv,.ts,.wmv" onchange="cvPick(event)" style="display:none;">
+        <i id="icon-c" class="ti ti-file-unknown"></i>
+        <div id="lbl-c" class="zone-label">Source video</div>
+        <div id="sub-c" class="zone-sub">Drop a video file, such as .webm, .mkv, .avi, or .mov</div>
+        <div id="fn-c" class="zone-file"></div>
+      </div>
+      <div class="name-row">
+        <select id="cv-quality" class="cv-select">
+          <option value="23">Standard quality (CRF 23) — balanced size and quality</option>
+          <option value="18">High quality (CRF 18) — larger file, better quality</option>
+          <option value="28">Smaller file (CRF 28) — lower quality, less storage</option>
+          <option value="copy">Remux only — no re-encoding (may not support every codec)</option>
+        </select>
+      </div>
+      <div class="name-row">
+        <input id="cv-name" type="text" placeholder="Output filename (leave blank to use the source filename)">
+        <div class="ext-badge">.mp4</div>
+      </div>
+      <button id="cv-btn" class="primary-btn" onclick="doConvert()" disabled>
+        <i class="ti ti-refresh"></i> Convert Video
+      </button>
+      <div class="progress-wrap" id="prog-wrap-cv"><div class="progress-bar" id="prog-bar-cv"></div></div>
+      <div class="status-box" id="status-cv"></div>
+      <div class="hint">
+        <i class="ti ti-info-circle"></i> Place the source file in the same folder as server.py. Re-encoding can take several minutes for large videos; unlike merging, it is not instant.
+      </div>
+    </div>
+
+    <div id="panel-hls" class="panel" style="display:none;">
+      <div class="name-row">
+        <input id="hls-url" type="text" placeholder="Paste any .ts URL from DevTools (e.g. https://.../720/720_out12.ts?md5=...)" oninput="handleHlsUrlChange()" onpaste="setTimeout(handleHlsUrlChange, 40)">
+      </div>
+      <div class="btn-row">
+        <button id="hls-detect-btn" class="secondary-btn detect-btn" onclick="detectResolutions()" disabled>
+          <i class="ti ti-search"></i> Detect Resolutions
+        </button>
+        <button id="hls-clear-btn" class="secondary-btn clear-btn" onclick="clearHlsForm()" disabled>
+          <i class="ti ti-trash"></i> Clear
+        </button>
+      </div>
+      <div id="hls-res-pills" class="res-pills" style="display:none;">
+        <div class="res-pills-label">Available resolutions</div>
+        <div id="hls-pills-row" class="pills-row"></div>
+      </div>
+      <div class="name-row">
+        <input id="hls-name" type="text" placeholder="Output filename (for example, CH02-Class01)" oninput="checkHlsReady()">
+        <div class="ext-badge">.mp4</div>
+      </div>
+      <button id="hls-dl-btn" class="primary-btn" onclick="startHlsDownload()" disabled>
+        <i class="ti ti-download"></i> Download Lecture
+      </button>
+      <div class="progress-wrap" id="prog-wrap-hls"><div class="progress-bar" id="prog-bar-hls"></div></div>
+      <div class="status-box" id="status-hls"></div>
+      <div class="hint">
+        <i class="ti ti-info-circle"></i> Paste any .ts segment URL copied from your browser's Network tab. The token may expire — start the download soon after copying.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>

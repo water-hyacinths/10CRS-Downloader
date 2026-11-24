@@ -1,0 +1,11 @@
+.venv
+venv
+work/
+output/
+hls-integration-plan.md
+GIT_BACKUP_GUIDE.md
+dl.sh
+Class Download Notes.md
+# Ignore everything inside downloads
+/downloads/*
+!/downloads/.gitkeep
